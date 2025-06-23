@@ -1,10 +1,13 @@
 ARG R_VER="4.5.1"
-ARG QUARTO_VER="1.7.31"
-ARG PANDOC_VER="3.7.0.1"
+
 
 FROM rocker/r-ver:${R_VER} AS base
+ARG QUARTO_VER="1.7.31"
+ARG PANDOC_VER="3.7.0.1"
+ARG CRAN_DATE="2025-06-15"
+
 RUN /rocker_scripts/setup_R.sh \
-  https://packagemanager.posit.co/cran/__linux__/noble/2025-06-15
+  https://packagemanager.posit.co/cran/__linux__/noble/$CRAN_DATE
 # https://code.visualstudio.com/docs/devcontainers/create-dev-container#:~:text=Note%3A%20The%20DEBIAN_FRONTEND%20export%20avoids%20warnings%20when%20you%20go%20on%20to%20work%20with%20your%20container.
 RUN /rocker_scripts/install_quarto.sh $QUARTO_VER
 RUN /rocker_scripts/install_pandoc.sh $PANDOC_VER
@@ -18,7 +21,7 @@ RUN apt-get install -y --no-install-recommends \
   # for ggalluvial
   libarchive13 \
   && rm -rf /var/lib/apt/lists/*
-
+RUN Rscript -e "warning(getOption('repos'))"
 # Install R packages
 RUN install2.r --error  --skipinstalled \
   bayesDP \
@@ -92,9 +95,12 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
+# Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
-  && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
-
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
 USER $USERNAME
-#RUN pipx install radian
-
