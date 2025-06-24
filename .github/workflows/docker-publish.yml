@@ -1,98 +1,92 @@
-name: Docker
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Build and Push Docker Image
 
 on:
-  schedule:
-    - cron: '38 1 * * *'
   push:
-    branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "main" ]
-
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  build:
-
+  build-and-push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Install the cosign tool except on PR
-      # https://github.com/sigstore/cosign-installer
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
-        with:
-          cosign-release: 'v2.2.4'
-
-      # Set up BuildKit Docker container builder to be able to build
-      # multi-platform images and export cache
-      # https://github.com/docker/setup-buildx-action
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
-
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
-      - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for commit date
+    
+    - name: Extract R version from Dockerfile
+      id: r-version
+      run: |
+        # Extract R version from ARG R_VER="4.5.1" pattern
+        R_VERSION=$(grep -E "ARG R_VER=" Dockerfile | head -1 | sed -E 's/.*R_VER="([0-9]+\.[0-9]+(\.[0-9]+)?)".*/\1/')
+        
+        # If no R_VER found, try other common patterns
+        if [ -z "$R_VERSION" ]; then
+          R_VERSION=$(grep -E "(FROM.*r-base:|FROM.*rocker/|R_VERSION=|ARG R_VERSION=)" Dockerfile | head -1 | sed -E 's/.*[:=]"?([0-9]+\.[0-9]+(\.[0-9]+)?)"?.*/\1/')
+        fi
+        
+        # If still no version found, try ENV or ARG statements
+        if [ -z "$R_VERSION" ]; then
+          R_VERSION=$(grep -E "(ENV|ARG).*R_VERSION" Dockerfile | head -1 | sed -E 's/.*R_VERSION[= ]+"?([0-9]+\.[0-9]+(\.[0-9]+)?)"?.*/\1/')
+        fi
+        
+        # Default to "latest" if no version found
+        if [ -z "$R_VERSION" ]; then
+          R_VERSION="latest"
+        fi
+        
+        echo "R_VERSION=$R_VERSION" >> $GITHUB_OUTPUT
+        echo "Detected R version: $R_VERSION"
+    
+    - name: Get last commit date
+      id: commit-date
+      run: |
+        COMMIT_DATE=$(git log -1 --format=%cd --date=format:%Y%m%d)
+        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_OUTPUT
+        echo "Last commit date: $COMMIT_DATE"
+    
+    - name: Generate Docker tag
+      id: docker-tag
+      run: |
+        TAG="r${{ steps.r-version.outputs.R_VERSION }}-${{ steps.commit-date.outputs.COMMIT_DATE }}"
+        echo "TAG=$TAG" >> $GITHUB_OUTPUT
+        echo "Docker tag: $TAG"
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: westendstatistics/rstats-dev
+        tags: |
+          type=raw,value=${{ steps.docker-tag.outputs.TAG }}
+          type=raw,value=r${{ steps.r-version.outputs.R_VERSION }},enable={{is_default_branch}}
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Output image details
+      run: |
+        echo "Image pushed with tags:"
+        echo "${{ steps.meta.outputs.tags }}"
