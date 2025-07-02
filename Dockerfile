@@ -46,8 +46,7 @@ ARG USER_GID=$USER_UID
 # Install Python, radian, and development tools
 COPY install-dev-tools.sh /tmp/install-dev-tools.sh
 RUN chmod +x /tmp/install-dev-tools.sh && \
-    /tmp/install-dev-tools.sh && \
-    rm /tmp/install-dev-tools.sh
+    /tmp/install-dev-tools.sh
 
 ENV PATH="/usr/local/bin:$PATH"
 
