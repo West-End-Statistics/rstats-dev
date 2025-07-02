@@ -86,6 +86,11 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
+    - name: Run tests
+      run: |
+        chmod +x test.sh
+        source test.sh
+    
     - name: Output image details
       run: |
         echo "Image pushed with tags:"

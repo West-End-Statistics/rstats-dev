@@ -1,0 +1,14 @@
+# Dockerfile for testing the main image
+# This extends the main Dockerfile to run tests
+
+ARG BASE_IMAGE=rstats-dev:latest
+FROM ${BASE_IMAGE}
+
+# Copy test files
+COPY tests/ /tests/
+
+# Set working directory
+WORKDIR /tests
+
+# Run tests when container starts
+CMD ["sh", "-c", "Rscript test_packages.R && Rscript test_cmdstanr.R"]

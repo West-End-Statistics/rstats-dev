@@ -1,6 +1,5 @@
 ARG R_VER="4.5.1"
 
-
 FROM rocker/r-ver:${R_VER} AS base
 ARG QUARTO_VER="1.7.31"
 ARG PANDOC_VER="3.7.0.1"
@@ -29,6 +28,7 @@ RUN install2.r --error  --skipinstalled \
   broom \
   broom.mixed \
   brms \
+  BuyseTest \
   checkmate \
   collapse \
   crew \
@@ -50,6 +50,7 @@ RUN install2.r --error  --skipinstalled \
   microbenchmark \
   mvtnorm \
   mmrm \
+  ordinal \
   pander \
   plotly \
   purrr \
@@ -62,17 +63,30 @@ RUN install2.r --error  --skipinstalled \
   rpact \
   rstan \
   skimr \
+  shiny \
   tarchetypes \
   targets\
   tibble \
   tidyr \
   tree \
+  truncnorm \
+  WinRatio \
   && rm -rf /tmp/downloaded_packages \
   && strip /usr/local/lib/R/site-library/*/libs/*.so
 RUN Rscript -e 'remotes::install_github("stan-dev/cmdstanr@v0.9.0")'
-RUN Rscript -e 'cmdstanr::install_cmdstan(cores = 2)'  
+
+RUN mkdir /opt/cmdstan
+RUN Rscript -e "cmdstanr::install_cmdstan(dir = '/opt/cmdstan', cores = 2)"  
+# This needs to be set after the installation, otherwise it will be 
+ENV CMDSTAN="/opt/cmdstan"
+
 
 FROM base AS development
+
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
 # https://www.makeuseof.com/install-python-ubuntu/
 # install radian and python
 RUN apt-get update && apt-get -y install software-properties-common
@@ -90,10 +104,6 @@ RUN install2.r --error \
   && strip /usr/local/lib/R/site-library/*/libs/*.so
 # there are often issues with httpgd getting taken down from CRAN
 RUN Rscript -e "remotes::install_github('nx10/httpgd@v2.0.4')"
-
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
