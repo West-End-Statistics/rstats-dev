@@ -2,82 +2,38 @@ ARG R_VER="4.5.1"
 
 FROM rocker/r-ver:${R_VER} AS base
 ARG QUARTO_VER="1.7.31"
-ARG PANDOC_VER="3.7.0.1"
+ARG PANDOC_VER="3.7.0.1"  
 ARG CRAN_DATE="2025-06-15"
 
+# Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
-  https://packagemanager.posit.co/cran/__linux__/noble/$CRAN_DATE
-# https://code.visualstudio.com/docs/devcontainers/create-dev-container#:~:text=Note%3A%20The%20DEBIAN_FRONTEND%20export%20avoids%20warnings%20when%20you%20go%20on%20to%20work%20with%20your%20container.
-RUN /rocker_scripts/install_quarto.sh $QUARTO_VER
-RUN /rocker_scripts/install_pandoc.sh $PANDOC_VER
-RUN apt-get update --fix-missing && export DEBIAN_FRONTEND=noninteractive
-# https://notes.rmhogervorst.nl/post/2020/09/23/solving-libxt-so-6-cannot-open-shared-object-in-grdevices-grsoftversion/
-RUN apt-get install -y --no-install-recommends \
-  libxt6 \
-  gdebi-core curl \
-  # for igraph 
-  libglpk-dev \
-  # for ggalluvial
-  libarchive13 \
-  && rm -rf /var/lib/apt/lists/*
-RUN Rscript -e "warning(getOption('repos'))"
-# Install R packages
-RUN install2.r --error  --skipinstalled \
-  bayesDP \
-  bayesplot \
-  broom \
-  broom.mixed \
-  brms \
-  BuyseTest \
-  checkmate \
-  collapse \
-  crew \
-  dplyr \
-  emmeans \
-  flextable \
-  ggplot2 \
-  ggalluvial \
-  gsDesign \
-  gtsummary \
-  haven \
-  here \
-  janitor \
-  knitr \
-  labelled \
-  lme4 \
-  lmerTest \
-  memoise \
-  microbenchmark \
-  mvtnorm \
-  mmrm \
-  ordinal \
-  pander \
-  plotly \
-  purrr \
-  quarto \
-  readr \
-  readxl \
-  remotes \
-  renv \
-  rmarkdown \
-  rpact \
-  rstan \
-  skimr \
-  shiny \
-  tarchetypes \
-  targets\
-  tibble \
-  tidyr \
-  tree \
-  truncnorm \
-  WinRatio \
-  && rm -rf /tmp/downloaded_packages \
-  && strip /usr/local/lib/R/site-library/*/libs/*.so
-RUN Rscript -e 'remotes::install_github("stan-dev/cmdstanr@v0.9.0")'
+    https://packagemanager.posit.co/cran/__linux__/noble/$CRAN_DATE && \
+    /rocker_scripts/install_quarto.sh $QUARTO_VER && \
+    /rocker_scripts/install_pandoc.sh $PANDOC_VER
 
-RUN mkdir /opt/cmdstan
-RUN Rscript -e "cmdstanr::install_cmdstan(dir = '/opt/cmdstan', cores = 2)"  
-# This needs to be set after the installation, otherwise it will be 
+# Install system dependencies in single layer
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends \
+        libxt6 \
+        gdebi-core \
+        curl \
+        libglpk-dev \
+        libarchive13 && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Copy R packages list and install
+COPY rpackages.txt /tmp/rpackages.txt
+RUN install2.r --error --skipinstalled \
+        $(cat /tmp/rpackages.txt | tr '\n' ' ') && \
+    rm -rf /tmp/downloaded_packages /tmp/rpackages.txt && \
+    strip /usr/local/lib/R/site-library/*/libs/*.so
+
+# Install cmdstanr from GitHub and cmdstan in single layer
+RUN Rscript -e 'remotes::install_github("stan-dev/cmdstanr@v0.9.0")' && \
+    mkdir /opt/cmdstan && \
+    Rscript -e "cmdstanr::install_cmdstan(dir = '/opt/cmdstan', cores = 2)" && \
+    rm -rf /tmp/* /var/tmp/*
+
 ENV CMDSTAN="/opt/cmdstan"
 
 
@@ -87,30 +43,25 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-# https://www.makeuseof.com/install-python-ubuntu/
-# install radian and python
-RUN apt-get update && apt-get -y install software-properties-common
-RUN add-apt-repository -y ppa:deadsnakes/ppa && apt update
-RUN apt-get -y install python3.11 python3-pip git pipx
-RUN PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install radian
+# Install Python, radian, and development tools
+COPY install-dev-tools.sh /tmp/install-dev-tools.sh
+RUN chmod +x /tmp/install-dev-tools.sh && \
+    /tmp/install-dev-tools.sh && \
+    rm /tmp/install-dev-tools.sh
+
 ENV PATH="/usr/local/bin:$PATH"
 
-# end install radian
-
-# Packages needed for development with vscode
+# Install R development packages
 RUN install2.r --error \
-  languageserver jsonlite rlang \
-  && rm -rf /tmp/downloaded_packages \
-  && strip /usr/local/lib/R/site-library/*/libs/*.so
-# there are often issues with httpgd getting taken down from CRAN
-RUN Rscript -e "remotes::install_github('nx10/httpgd@v2.0.4')"
+        languageserver jsonlite rlang && \
+    Rscript -e "remotes::install_github('nx10/httpgd@v2.0.4')" && \
+    rm -rf /tmp/downloaded_packages /tmp/* /var/tmp/* && \
+    strip /usr/local/lib/R/site-library/*/libs/*.so
 
-# Create the user
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
-    && apt-get update \
-    && apt-get install -y sudo \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    && chmod 0440 /etc/sudoers.d/$USERNAME
+# Create user in final step
+RUN groupadd --gid $USER_GID $USERNAME && \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
+    echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
+    chmod 0440 /etc/sudoers.d/$USERNAME
+
 USER $USERNAME
