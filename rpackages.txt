@@ -4,6 +4,7 @@ broom
 broom.mixed
 brms
 BuyseTest
+cardx
 checkmate
 collapse
 crew
@@ -21,10 +22,12 @@ knitr
 labelled
 lme4
 lmerTest
+marginaleffects
 memoise
 microbenchmark
 mvtnorm
 mmrm
+openxlsx
 ordinal
 pander
 plotly
@@ -48,3 +51,4 @@ tree
 truncnorm
 usethis
 WinRatio
+writexl
