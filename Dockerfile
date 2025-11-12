@@ -1,9 +1,9 @@
 ARG R_VER="4.5.1"
 
 FROM rocker/r-ver:${R_VER} AS base
-ARG QUARTO_VER="1.7.31"
-ARG PANDOC_VER="3.7.0.1"  
-ARG CRAN_DATE="2025-06-15"
+ARG QUARTO_VER="1.8.25"
+ARG PANDOC_VER="3.8.2.1"  
+ARG CRAN_DATE="2025-11-01"
 
 # Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
@@ -35,7 +35,7 @@ RUN Rscript -e 'remotes::install_github("stan-dev/cmdstanr@v0.9.0")' && \
     rm -rf /tmp/* /var/tmp/*
 
 ENV CMDSTAN="/opt/cmdstan"
-
+ENV TZ=America/New_York
 
 FROM base AS development
 
@@ -62,5 +62,6 @@ RUN groupadd --gid $USER_GID $USERNAME && \
     useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
     echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME
+
 
 USER $USERNAME
