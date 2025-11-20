@@ -7,16 +7,7 @@ test_package_loading <- function() {
   cat("Testing R package loading...\n")
   
   # List of critical packages to test
-  packages_to_test <- c(
-    "dplyr",
-    "ggplot2", 
-    "brms",
-    "rstan",
-    "cmdstanr",
-    "bayesplot",
-    "targets",
-    "quarto"
-  )
+  packages_to_test <- readLines(here::here("rpackages.txt"))
   
   failed_packages <- c()
   

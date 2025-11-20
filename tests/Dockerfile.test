@@ -6,6 +6,7 @@ FROM ${BASE_IMAGE}
 
 # Copy test files
 COPY tests/ /tests/
+COPY rpackages.txt /tests/rpackages.txt
 
 # Set working directory
 WORKDIR /tests

@@ -19,6 +19,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         gdebi-core \
         curl \
         libglpk-dev \
+        # Dependency for flextable
+        libwebp-dev \
         libarchive13 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # Copy R packages list and install
