@@ -21,6 +21,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         libglpk-dev \
         # Dependency for flextable
         libwebp-dev \
+        # SSH seems to have disappeared at some point - useful for dev
+        openssh-client \
         libarchive13 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # Copy R packages list and install
