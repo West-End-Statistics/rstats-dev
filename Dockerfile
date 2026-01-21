@@ -1,9 +1,9 @@
-ARG R_VER="4.5.1"
+ARG R_VER="4.5.2"
 
 FROM rocker/r-ver:${R_VER} AS base
-ARG QUARTO_VER="1.8.25"
-ARG PANDOC_VER="3.8.2.1"  
-ARG CRAN_DATE="2025-11-01"
+ARG QUARTO_VER="1.8.27"
+ARG PANDOC_VER="3.8.3"
+ARG CRAN_DATE="2026-01-15"
 
 # Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
@@ -41,7 +41,7 @@ RUN Rscript -e 'remotes::install_github("stan-dev/cmdstanr@v0.9.0")' && \
 ENV CMDSTAN="/opt/cmdstan"
 ENV TZ=America/New_York
 
-FROM base AS development
+FROM base AS development  
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
