@@ -2,8 +2,8 @@ ARG R_VER="4.5.2"
 
 FROM rocker/r-ver:${R_VER} AS base
 ARG QUARTO_VER="1.8.27"
-ARG PANDOC_VER="3.8.3"
-ARG CRAN_DATE="2026-01-15"
+ARG PANDOC_VER="3.9.0.2"
+ARG CRAN_DATE="2026-03-15"
 
 # Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
@@ -69,3 +69,7 @@ RUN groupadd --gid $USER_GID $USERNAME && \
 
 
 USER $USERNAME
+
+# Create R_LIBS_USER directory so packages can be installed without root
+RUN Rscript -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)" && \
+    echo '.libPaths(c(Sys.getenv("R_LIBS_USER"), .libPaths()))' >> /home/$USERNAME/.Rprofile
