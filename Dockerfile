@@ -69,3 +69,7 @@ RUN groupadd --gid $USER_GID $USERNAME && \
 
 
 USER $USERNAME
+
+# Create R_LIBS_USER directory so packages can be installed without root
+RUN Rscript -e "dir.create(path = Sys.getenv('R_LIBS_USER'), showWarnings = FALSE, recursive = TRUE)" && \
+    echo '.libPaths(c(Sys.getenv("R_LIBS_USER"), .libPaths()))' >> /home/$USERNAME/.Rprofile
