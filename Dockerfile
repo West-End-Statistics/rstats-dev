@@ -23,7 +23,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         libwebp-dev \
         # SSH seems to have disappeared at some point - useful for dev
         openssh-client \
-        libarchive13 && \
+        libarchive13 \
+        libuv1 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # Copy R packages list and install
 COPY rpackages.txt /tmp/rpackages.txt
