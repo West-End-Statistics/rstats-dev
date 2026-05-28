@@ -1,9 +1,9 @@
-ARG R_VER="4.5.2"
+ARG R_VER="4.5.3"
 
 FROM rocker/r-ver:${R_VER} AS base
-ARG QUARTO_VER="1.8.27"
+ARG QUARTO_VER="1.9.38"
 ARG PANDOC_VER="3.9.0.2"
-ARG CRAN_DATE="2026-03-15"
+ARG CRAN_DATE="2026-05-26"
 
 # Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
@@ -57,7 +57,7 @@ ENV PATH="/usr/local/bin:$PATH"
 # Install R development packages
 RUN install2.r --error \
         languageserver jsonlite rlang && \
-    Rscript -e "remotes::install_github('nx10/httpgd@v2.0.4')" && \
+    Rscript -e "remotes::install_github('nx10/httpgd@v2.1.4')" && \
     rm -rf /tmp/downloaded_packages /tmp/* /var/tmp/* && \
     strip /usr/local/lib/R/site-library/*/libs/*.so
 
