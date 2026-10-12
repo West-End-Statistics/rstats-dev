@@ -1,9 +1,9 @@
 ARG R_VER="4.5.3"
 
 FROM rocker/r-ver:${R_VER} AS base
-ARG QUARTO_VER="1.9.38"
-ARG PANDOC_VER="3.9.0.2"
-ARG CRAN_DATE="2026-05-26"
+ARG QUARTO_VER="1.10.19"
+ARG PANDOC_VER="3.12.1"
+ARG CRAN_DATE="2026-09-30"
 
 # Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
@@ -24,8 +24,23 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         # SSH seems to have disappeared at some point - useful for dev
         openssh-client \
         libarchive13 \
-        libuv1 && \
+        libuv1 \
+        # LibreOffice for rendering .docx output to PDF/PNG (tlf-review skill)
+        libreoffice-writer \
+        fonts-liberation && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# GitHub CLI
+RUN mkdir -p -m 755 /etc/apt/keyrings && \
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gh && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Copy R packages list and install
 COPY rpackages.txt /tmp/rpackages.txt
 RUN install2.r --error --skipinstalled \
