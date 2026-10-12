@@ -1,9 +1,9 @@
 ARG R_VER="4.5.3"
 
 FROM rocker/r-ver:${R_VER} AS base
-ARG QUARTO_VER="1.9.38"
-ARG PANDOC_VER="3.9.0.2"
-ARG CRAN_DATE="2026-05-26"
+ARG QUARTO_VER="1.10.19"
+ARG PANDOC_VER="3.12.1"
+ARG CRAN_DATE="2026-09-30"
 
 # Combine rocker scripts and system package installation
 RUN /rocker_scripts/setup_R.sh \
@@ -26,6 +26,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         libarchive13 \
         libuv1 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Copy R packages list and install
 COPY rpackages.txt /tmp/rpackages.txt
 RUN install2.r --error --skipinstalled \
@@ -57,8 +58,12 @@ ENV PATH="/usr/local/bin:$PATH"
 
 # Install R development packages
 RUN install2.r --error \
-        languageserver jsonlite rlang && \
+        languageserver jsonlite rlang \
+        jgd processx later rstudioapi && \
     Rscript -e "remotes::install_github('nx10/httpgd@v2.1.4')" && \
+    # sess is bundled with the VS Code R extension (not on CRAN); preinstall
+    # system-wide so the extension doesn't prompt to install it per user
+    Rscript -e "remotes::install_github('REditorSupport/vscode-R@v3.0.1', subdir = 'sess')" && \
     rm -rf /tmp/downloaded_packages /tmp/* /var/tmp/* && \
     strip /usr/local/lib/R/site-library/*/libs/*.so
 
