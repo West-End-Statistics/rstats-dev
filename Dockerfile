@@ -58,8 +58,12 @@ ENV PATH="/usr/local/bin:$PATH"
 
 # Install R development packages
 RUN install2.r --error \
-        languageserver jsonlite rlang && \
+        languageserver jsonlite rlang \
+        jgd processx later rstudioapi && \
     Rscript -e "remotes::install_github('nx10/httpgd@v2.1.4')" && \
+    # sess is bundled with the VS Code R extension (not on CRAN); preinstall
+    # system-wide so the extension doesn't prompt to install it per user
+    Rscript -e "remotes::install_github('REditorSupport/vscode-R@v3.0.1', subdir = 'sess')" && \
     rm -rf /tmp/downloaded_packages /tmp/* /var/tmp/* && \
     strip /usr/local/lib/R/site-library/*/libs/*.so
 

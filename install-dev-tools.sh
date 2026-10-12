@@ -9,6 +9,7 @@ apt-get update
 apt-get -y install --no-install-recommends \
     software-properties-common \
     git \
+    xz-utils \
     sudo
 
 echo "Adding Python PPA and installing Python 3.11..."
@@ -21,6 +22,12 @@ apt-get -y install --no-install-recommends \
 
 echo "Installing radian..."
 PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install radian
+
+ARF_VER="0.6.0"
+echo "Installing arf ${ARF_VER} (modern R console)..."
+ARF_TARGET="$(uname -m)-unknown-linux-gnu"
+curl -fsSL "https://github.com/eitsupi/arf/releases/download/v${ARF_VER}/arf-console-${ARF_TARGET}.tar.xz" \
+    | tar -xJ -C /usr/local/bin --strip-components=1 "arf-console-${ARF_TARGET}/arf"
 
 echo "Installing LibreOffice Writer (for .docx to PDF rendering)..."
 apt-get -y install --no-install-recommends \
