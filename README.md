@@ -8,8 +8,7 @@ R development image for West End Statistics, published to Docker Hub as
 - R (from `rocker/r-ver`), Quarto and Pandoc, at the versions pinned at the top of `Dockerfile`
 - CRAN packages listed in `rpackages.txt`, installed from a dated Posit Package Manager snapshot (`CRAN_DATE`)
 - `cmdstanr` and CmdStan (`/opt/cmdstan`)
-- GitHub CLI (`gh`) and LibreOffice Writer (for rendering `.docx` to PDF)
-- Development target only: Python, `radian`, `languageserver`, `httpgd`, and a non-root `vscode` user
+- Development target only: Python, `radian`, `languageserver`, `httpgd`, GitHub CLI (`gh`), LibreOffice Writer (for rendering `.docx` to PDF), and a non-root `vscode` user
 
 ## Tags
 

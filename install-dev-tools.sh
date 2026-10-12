@@ -22,6 +22,21 @@ apt-get -y install --no-install-recommends \
 echo "Installing radian..."
 PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install radian
 
+echo "Installing LibreOffice Writer (for .docx to PDF rendering)..."
+apt-get -y install --no-install-recommends \
+    libreoffice-writer \
+    fonts-liberation
+
+echo "Installing GitHub CLI..."
+mkdir -p -m 755 /etc/apt/keyrings
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list
+apt-get update
+apt-get -y install --no-install-recommends gh
+
 echo "Cleaning up..."
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
