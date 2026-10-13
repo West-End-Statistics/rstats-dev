@@ -29,10 +29,8 @@ ARF_TARGET="$(uname -m)-unknown-linux-gnu"
 curl -fsSL "https://github.com/eitsupi/arf/releases/download/v${ARF_VER}/arf-console-${ARF_TARGET}.tar.xz" \
     | tar -xJ -C /usr/local/bin --strip-components=1 "arf-console-${ARF_TARGET}/arf"
 
-echo "Installing LibreOffice Writer (for .docx to PDF rendering)..."
-apt-get -y install --no-install-recommends \
-    libreoffice-writer \
-    fonts-liberation
+echo "Installing fonts-liberation..."
+apt-get -y install --no-install-recommends fonts-liberation
 
 echo "Installing GitHub CLI..."
 mkdir -p -m 755 /etc/apt/keyrings
